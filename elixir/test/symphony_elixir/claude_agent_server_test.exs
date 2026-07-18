@@ -142,4 +142,114 @@ defmodule SymphonyElixir.ClaudeAgentServerTest do
       File.rm_rf(test_root)
     end
   end
+
+  test "second run_turn resumes the claude session and accumulates usage" do
+    {test_root, workspace_root, workspace} = setup_workspace!("resume")
+    trace_file = Path.join(test_root, "trace")
+    script = write_fake_claude!(test_root, trace_file, @success_ndjson)
+
+    try do
+      write_workflow_file!(Workflow.workflow_file_path(),
+        workspace_root: workspace_root,
+        agent_kind: "claude",
+        claude_command: script
+      )
+
+      test_pid = self()
+      on_message = fn message -> send(test_pid, {:claude_msg, message}) end
+      {:ok, session} = ClaudeServer.start_session(workspace)
+
+      assert {:ok, %{turn_id: 1}} = ClaudeServer.run_turn(session, "turn one", issue_fixture(), on_message: on_message)
+
+      assert {:ok, %{turn_id: 2, session_id: "sess-123#t2"}} =
+               ClaudeServer.run_turn(session, "turn two", issue_fixture(), on_message: on_message)
+
+      [argv1, argv2] = trace_file |> File.read!() |> String.split("\n", trim: true)
+      refute argv1 =~ "--resume"
+      assert argv2 =~ "--resume sess-123"
+
+      usages =
+        for _ <- 1..2 do
+          assert_receive {:claude_msg, %{event: :turn_completed, payload: %{"usage" => usage}}}
+          usage
+        end
+
+      assert List.last(usages) == %{"input_tokens" => 320, "output_tokens" => 80, "total_tokens" => 400}
+
+      ClaudeServer.stop_session(session)
+    after
+      File.rm_rf(test_root)
+    end
+  end
+
+  test "run_turn surfaces claude error results" do
+    {test_root, workspace_root, workspace} = setup_workspace!("error")
+    trace_file = Path.join(test_root, "trace")
+
+    error_ndjson = """
+    {"type":"system","subtype":"init","session_id":"sess-err","model":"claude-opus-4-8"}
+    {"type":"result","subtype":"error_during_execution","is_error":true,"session_id":"sess-err","result":"boom","usage":{"input_tokens":5,"output_tokens":1}}
+    """
+
+    script = write_fake_claude!(test_root, trace_file, error_ndjson)
+
+    try do
+      write_workflow_file!(Workflow.workflow_file_path(),
+        workspace_root: workspace_root,
+        agent_kind: "claude",
+        claude_command: script
+      )
+
+      {:ok, session} = ClaudeServer.start_session(workspace)
+
+      assert {:error, {:claude_turn_error, "error_during_execution", "boom"}} =
+               ClaudeServer.run_turn(session, "explode", issue_fixture())
+
+      ClaudeServer.stop_session(session)
+    after
+      File.rm_rf(test_root)
+    end
+  end
+
+  test "run_turn times out when claude produces no result" do
+    {test_root, workspace_root, workspace} = setup_workspace!("timeout")
+    trace_file = Path.join(test_root, "trace")
+    script = write_fake_claude!(test_root, trace_file, "", "sleep 5")
+
+    try do
+      write_workflow_file!(Workflow.workflow_file_path(),
+        workspace_root: workspace_root,
+        agent_kind: "claude",
+        claude_command: script,
+        claude_turn_timeout_ms: 250
+      )
+
+      {:ok, session} = ClaudeServer.start_session(workspace)
+      assert {:error, {:turn_timeout, 250}} = ClaudeServer.run_turn(session, "hang", issue_fixture())
+      ClaudeServer.stop_session(session)
+    after
+      File.rm_rf(test_root)
+    end
+  end
+
+  test "run_turn reports nonzero exit without result" do
+    {test_root, workspace_root, workspace} = setup_workspace!("exit")
+    script_path = Path.join(test_root, "fake-claude")
+    File.write!(script_path, "#!/usr/bin/env bash\nexit 7\n")
+    File.chmod!(script_path, 0o755)
+
+    try do
+      write_workflow_file!(Workflow.workflow_file_path(),
+        workspace_root: workspace_root,
+        agent_kind: "claude",
+        claude_command: script_path
+      )
+
+      {:ok, session} = ClaudeServer.start_session(workspace)
+      assert {:error, {:claude_exited, 7}} = ClaudeServer.run_turn(session, "die", issue_fixture())
+      ClaudeServer.stop_session(session)
+    after
+      File.rm_rf(test_root)
+    end
+  end
 end
