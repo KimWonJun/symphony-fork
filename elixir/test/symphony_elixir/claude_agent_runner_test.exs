@@ -82,4 +82,37 @@ defmodule SymphonyElixir.ClaudeAgentRunnerTest do
       File.rm_rf(test_root)
     end
   end
+
+  test "claude updates arrive as codex_worker_update messages with recognizable usage" do
+    test_root = Path.join(System.tmp_dir!(), "symphony-claude-runner-msg-#{System.unique_integer([:positive])}")
+    workspace_root = Path.join(test_root, "workspaces")
+    trace_file = Path.join(test_root, "trace")
+    File.mkdir_p!(workspace_root)
+    script = write_fake_claude!(test_root, trace_file)
+
+    try do
+      write_workflow_file!(Workflow.workflow_file_path(),
+        workspace_root: workspace_root,
+        agent_kind: "claude",
+        claude_command: script
+      )
+
+      fetcher = fn _ids -> {:ok, [issue_fixture("Done")]} end
+
+      assert :ok = AgentRunner.run(issue_fixture("In Progress"), self(), issue_state_fetcher: fetcher)
+
+      assert_receive {:worker_runtime_info, "issue-runner-1", %{workspace_path: _}}
+      assert_receive {:codex_worker_update, "issue-runner-1", %{event: :session_started, timestamp: %DateTime{}}}
+
+      assert_receive {:codex_worker_update, "issue-runner-1",
+                      %{
+                        event: :turn_completed,
+                        payload: %{"method" => "turn/completed", "usage" => usage}
+                      }}
+
+      assert usage == %{"input_tokens" => 160, "output_tokens" => 40, "total_tokens" => 200}
+    after
+      File.rm_rf(test_root)
+    end
+  end
 end
