@@ -36,6 +36,19 @@ codex:
   turn_sandbox_policy:
     type: workspaceWrite
     networkAccess: true
+# To run with Claude Code on a Pro/Max subscription instead of Codex:
+#   1. set `agent.kind: claude`
+#   2. authenticate the host with `claude /login` (or export CLAUDE_CODE_OAUTH_TOKEN
+#      from `claude setup-token` for headless servers)
+#   3. make sure ANTHROPIC_API_KEY is NOT exported (the adapter also strips it)
+# agent:
+#   kind: claude
+claude:
+  command: claude
+  model: claude-opus-4-8
+  permission_mode: bypassPermissions
+  extra_args: ""
+  turn_timeout_ms: 3600000
 ---
 
 You are working on a Linear ticket `{{ issue.identifier }}`

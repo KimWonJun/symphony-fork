@@ -1,0 +1,3 @@
+# Symphony Elixir
+
+@AGENTS.md
