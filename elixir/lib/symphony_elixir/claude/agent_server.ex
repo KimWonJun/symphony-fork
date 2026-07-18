@@ -249,15 +249,14 @@ defmodule SymphonyElixir.Claude.AgentServer do
   end
 
   defp close_port(port) do
-    if is_port(port) and port in Port.list() do
-      Port.close(port)
-    end
-
+    Port.close(port)
     :ok
   rescue
-    # The OS process can exit and the VM can reclaim the port between the
-    # membership check above and this call, racing us under load; treat an
-    # already-gone port as already closed.
+    # The OS process can exit and the VM can reclaim the port before we get
+    # here (a race under load), and dialyzer proves `port` is always a real
+    # port() at this call site, so a defensive is_port/Port.list membership
+    # check is both redundant and itself racy; just rescue the already-closed
+    # case instead.
     ArgumentError -> :ok
   end
 
