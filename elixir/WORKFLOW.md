@@ -1,7 +1,7 @@
 ---
 tracker:
   kind: linear
-  project_slug: "symphony-0c79b11b75ea"
+  project_slug: "4548ff421362"
   required_labels: []
   active_states:
     - Todo
@@ -20,13 +20,14 @@ workspace:
   root: ~/code/symphony-workspaces
 hooks:
   after_create: |
-    git clone --depth 1 https://github.com/openai/symphony .
+    git clone --depth 1 https://github.com/KimWonJun/symphony-fork .
     if command -v mise >/dev/null 2>&1; then
       cd elixir && mise trust && mise exec -- mix deps.get
     fi
   before_remove: |
     cd elixir && mise exec -- mix workspace.before_remove
 agent:
+  kind: claude
   max_concurrent_agents: 10
   max_turns: 20
 codex:
@@ -36,13 +37,10 @@ codex:
   turn_sandbox_policy:
     type: workspaceWrite
     networkAccess: true
-# To run with Claude Code on a Pro/Max subscription instead of Codex:
-#   1. set `agent.kind: claude`
-#   2. authenticate the host with `claude /login` (or export CLAUDE_CODE_OAUTH_TOKEN
-#      from `claude setup-token` for headless servers)
-#   3. make sure ANTHROPIC_API_KEY is NOT exported (the adapter also strips it)
-# agent:
-#   kind: claude
+# Claude Code runs on a Pro/Max subscription (`agent.kind: claude` above):
+#   - authenticate the host with `claude /login` (or export CLAUDE_CODE_OAUTH_TOKEN
+#     from `claude setup-token` for headless servers)
+#   - make sure ANTHROPIC_API_KEY is NOT exported (the adapter also strips it)
 claude:
   command: claude
   model: claude-opus-4-8
