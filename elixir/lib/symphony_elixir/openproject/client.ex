@@ -8,7 +8,7 @@ defmodule SymphonyElixir.OpenProject.Client do
   """
 
   require Logger
-  alias SymphonyElixir.{Config, Linear.Issue}
+  alias SymphonyElixir.{Config, Tracker.Issue}
 
   @page_size 50
   @max_error_body_log_bytes 1_000
@@ -106,7 +106,7 @@ defmodule SymphonyElixir.OpenProject.Client do
       assignee_id: id_from_href(get_in(wp, ["_links", "assignee", "href"])),
       blocked_by: [],
       labels: [],
-      assigned_to_worker: true,
+      dispatchable: true,
       created_at: parse_datetime(wp["createdAt"]),
       updated_at: parse_datetime(wp["updatedAt"])
     }
