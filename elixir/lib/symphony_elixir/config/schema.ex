@@ -432,54 +432,9 @@ defmodule SymphonyElixir.Config.Schema do
     provider = normalize_optional_map(settings.tracker.provider) || %{}
 
     {api_key, assignee, provider, secret_environment_names} =
-      case settings.tracker.kind do
-        "linear" ->
-          linear_provider =
-            provider
-            |> Map.put_new("endpoint", settings.tracker.endpoint || @linear_endpoint)
-            |> Map.put_new("api_key", settings.tracker.api_key)
-            |> Map.put_new("project_slug", settings.tracker.project_slug)
-            |> Map.put_new("assignee", settings.tracker.assignee)
+      resolve_tracker_secrets(settings, provider)
 
-          resolved_api_key =
-            resolve_secret_setting(linear_provider["api_key"], System.get_env("LINEAR_API_KEY"))
-
-          resolved_assignee =
-            resolve_secret_setting(linear_provider["assignee"], System.get_env("LINEAR_ASSIGNEE"))
-
-          {
-            resolved_api_key,
-            resolved_assignee,
-            linear_provider,
-            ["LINEAR_API_KEY" | env_reference_names([linear_provider["api_key"]])]
-          }
-
-        "openproject" ->
-          resolved_api_key =
-            resolve_secret_setting(settings.tracker.api_key, System.get_env("OPENPROJECT_API_KEY"))
-
-          {
-            resolved_api_key,
-            settings.tracker.assignee,
-            provider,
-            ["OPENPROJECT_API_KEY" | env_reference_names([settings.tracker.api_key])]
-          }
-
-        _ ->
-          {settings.tracker.api_key, settings.tracker.assignee, provider, []}
-      end
-
-    {active_states, terminal_states} =
-      case settings.tracker.kind do
-        kind when kind in ["linear", "memory"] ->
-          {
-            settings.tracker.active_states || @linear_active_states,
-            settings.tracker.terminal_states || @linear_terminal_states
-          }
-
-        _ ->
-          {settings.tracker.active_states, settings.tracker.terminal_states}
-      end
+    {active_states, terminal_states} = resolve_tracker_states(settings)
 
     tracker = %{
       settings.tracker
@@ -505,6 +460,55 @@ defmodule SymphonyElixir.Config.Schema do
     }
 
     %{settings | tracker: tracker, workspace: workspace, codex: codex}
+  end
+
+  defp resolve_tracker_secrets(%{tracker: %{kind: "linear"} = tracker}, provider) do
+    linear_provider =
+      provider
+      |> Map.put_new("endpoint", tracker.endpoint || @linear_endpoint)
+      |> Map.put_new("api_key", tracker.api_key)
+      |> Map.put_new("project_slug", tracker.project_slug)
+      |> Map.put_new("assignee", tracker.assignee)
+
+    resolved_api_key =
+      resolve_secret_setting(linear_provider["api_key"], System.get_env("LINEAR_API_KEY"))
+
+    resolved_assignee =
+      resolve_secret_setting(linear_provider["assignee"], System.get_env("LINEAR_ASSIGNEE"))
+
+    {
+      resolved_api_key,
+      resolved_assignee,
+      linear_provider,
+      ["LINEAR_API_KEY" | env_reference_names([linear_provider["api_key"]])]
+    }
+  end
+
+  defp resolve_tracker_secrets(%{tracker: %{kind: "openproject"} = tracker}, provider) do
+    resolved_api_key =
+      resolve_secret_setting(tracker.api_key, System.get_env("OPENPROJECT_API_KEY"))
+
+    {
+      resolved_api_key,
+      tracker.assignee,
+      provider,
+      ["OPENPROJECT_API_KEY" | env_reference_names([tracker.api_key])]
+    }
+  end
+
+  defp resolve_tracker_secrets(%{tracker: tracker}, provider) do
+    {tracker.api_key, tracker.assignee, provider, []}
+  end
+
+  defp resolve_tracker_states(%{tracker: %{kind: kind} = tracker}) when kind in ["linear", "memory"] do
+    {
+      tracker.active_states || @linear_active_states,
+      tracker.terminal_states || @linear_terminal_states
+    }
+  end
+
+  defp resolve_tracker_states(%{tracker: tracker}) do
+    {tracker.active_states, tracker.terminal_states}
   end
 
   defp normalize_keys(value) when is_map(value) do

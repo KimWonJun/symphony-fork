@@ -41,7 +41,7 @@ defmodule SymphonyElixir.OpenProjectClientTest do
     assert issue.assignee_id == "4"
     assert issue.labels == []
     assert issue.blocked_by == []
-    assert issue.assigned_to_worker == true
+    assert issue.dispatchable == true
     assert %DateTime{} = issue.created_at
   end
 

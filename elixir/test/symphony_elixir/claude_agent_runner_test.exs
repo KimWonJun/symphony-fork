@@ -30,7 +30,8 @@ defmodule SymphonyElixir.ClaudeAgentRunnerTest do
       description: "route to claude adapter",
       state: state,
       url: "https://example.org/issues/MT-77",
-      labels: []
+      labels: [],
+      dispatchable: true
     }
   end
 

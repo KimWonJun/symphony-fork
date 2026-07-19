@@ -32,9 +32,11 @@ defmodule SymphonyElixir.LiveOpenProjectTest do
 
       try do
         # 1. 폴링 경로: New 상태의 픽스처가 잡혀야 함
-        {:ok, candidates} = Client.fetch_candidate_issues()
+        {:ok, candidates} =
+          Client.fetch_issues_by_states(["New", "In progress", "Merging", "Rework"])
+
         fixture = Enum.find(candidates, &(&1.id == wp_id))
-        assert fixture, "fixture WP-#{wp_id} not returned by fetch_candidate_issues"
+        assert fixture, "fixture WP-#{wp_id} not returned by fetch_issues_by_states"
         assert fixture.identifier == "WP-#{wp_id}"
         assert fixture.state == "New"
 
@@ -43,7 +45,7 @@ defmodule SymphonyElixir.LiveOpenProjectTest do
         assert :ok = Client.update_issue_state(wp_id, "Human Review")
 
         # 3. reconcile 경로
-        {:ok, [refreshed]} = Client.fetch_issue_states_by_ids([wp_id])
+        {:ok, [refreshed]} = Client.fetch_issues_by_ids([wp_id])
         assert refreshed.state == "Human Review"
 
         # 4. 코멘트 (워크패드 경로)

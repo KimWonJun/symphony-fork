@@ -24,7 +24,8 @@ defmodule SymphonyElixir.LiveClaudeSmokeTest do
           description: "Reply DONE",
           state: "In Progress",
           url: "https://example.org/issues/LIVE-1",
-          labels: []
+          labels: [],
+          dispatchable: true
         }
 
         fetcher = fn _ids -> {:ok, [%Issue{issue | state: "Done"}]} end

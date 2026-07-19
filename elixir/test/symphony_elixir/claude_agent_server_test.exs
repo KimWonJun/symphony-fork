@@ -42,7 +42,8 @@ defmodule SymphonyElixir.ClaudeAgentServerTest do
       description: "drive the fake claude binary",
       state: "In Progress",
       url: "https://example.org/issues/MT-1",
-      labels: []
+      labels: [],
+      dispatchable: true
     }
   end
 

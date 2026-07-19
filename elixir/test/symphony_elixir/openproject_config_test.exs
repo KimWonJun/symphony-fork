@@ -46,6 +46,12 @@ defmodule SymphonyElixir.OpenProjectConfigTest do
     assert {:error, :openproject_assignee_filter_not_supported} = Config.validate!()
   end
 
+  test "openproject kind requires an explicit active_states list" do
+    write_openproject_workflow!(tracker_active_states: nil)
+
+    assert {:error, :missing_openproject_active_states} = Config.validate!()
+  end
+
   test "openproject api key resolves from OPENPROJECT_API_KEY env" do
     original = System.get_env("OPENPROJECT_API_KEY")
     System.put_env("OPENPROJECT_API_KEY", "env-op-token")

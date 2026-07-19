@@ -14,17 +14,6 @@ defmodule SymphonyElixir.OpenProject.Client do
   @max_error_body_log_bytes 1_000
   @priority_rank %{"immediate" => 1, "high" => 2, "normal" => 3, "low" => 4}
 
-  @spec fetch_candidate_issues() :: {:ok, [Issue.t()]} | {:error, term()}
-  def fetch_candidate_issues do
-    tracker = Config.settings!().tracker
-
-    cond do
-      is_nil(tracker.api_key) -> {:error, :missing_openproject_api_token}
-      is_nil(tracker.project_slug) -> {:error, :missing_openproject_project}
-      true -> fetch_issues_by_states(tracker.active_states)
-    end
-  end
-
   @spec fetch_issues_by_states([String.t()]) :: {:ok, [Issue.t()]} | {:error, term()}
   def fetch_issues_by_states(state_names) when is_list(state_names) do
     with {:ok, status_ids} <- status_ids_by_name() do
@@ -43,10 +32,10 @@ defmodule SymphonyElixir.OpenProject.Client do
     end
   end
 
-  @spec fetch_issue_states_by_ids([String.t()]) :: {:ok, [Issue.t()]} | {:error, term()}
-  def fetch_issue_states_by_ids([]), do: {:ok, []}
+  @spec fetch_issues_by_ids([String.t()]) :: {:ok, [Issue.t()]} | {:error, term()}
+  def fetch_issues_by_ids([]), do: {:ok, []}
 
-  def fetch_issue_states_by_ids(issue_ids) when is_list(issue_ids) do
+  def fetch_issues_by_ids(issue_ids) when is_list(issue_ids) do
     fetch_pages([%{"id" => %{"operator" => "=", "values" => issue_ids}}], 1, [])
   end
 
