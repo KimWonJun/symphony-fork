@@ -50,6 +50,47 @@ defmodule SymphonyElixir.OpenProject.Client do
     fetch_pages([%{"id" => %{"operator" => "=", "values" => issue_ids}}], 1, [])
   end
 
+  @spec create_comment(String.t(), String.t()) :: :ok | {:error, term()}
+  def create_comment(issue_id, body) when is_binary(issue_id) and is_binary(body) do
+    case request(:post, "/work_packages/#{issue_id}/activities", [], %{"comment" => %{"raw" => body}}) do
+      {:ok, _response} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @spec update_issue_state(String.t(), String.t()) :: :ok | {:error, term()}
+  def update_issue_state(issue_id, state_name)
+      when is_binary(issue_id) and is_binary(state_name) do
+    do_update_issue_state(issue_id, state_name, _retry_on_conflict? = true)
+  end
+
+  defp do_update_issue_state(issue_id, state_name, retry_on_conflict?) do
+    with {:ok, status_ids} <- status_ids_by_name(),
+         {:ok, status_id} <- resolve_status_id(status_ids, state_name),
+         {:ok, wp} <- request(:get, "/work_packages/#{issue_id}", [], nil),
+         {:ok, _updated} <-
+           request(:patch, "/work_packages/#{issue_id}", [], %{
+             "lockVersion" => wp["lockVersion"],
+             "_links" => %{"status" => %{"href" => "/api/v3/statuses/#{status_id}"}}
+           }) do
+      :ok
+    else
+      {:error, {:http_status, 409, _body}} when retry_on_conflict? ->
+        Logger.warning("OpenProject lockVersion conflict on work package #{issue_id}; retrying once")
+        do_update_issue_state(issue_id, state_name, false)
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp resolve_status_id(status_ids, state_name) do
+    case Map.get(status_ids, normalize_name(state_name)) do
+      nil -> {:error, {:status_not_found, state_name}}
+      status_id -> {:ok, status_id}
+    end
+  end
+
   @doc false
   @spec normalize_work_package(term()) :: Issue.t() | nil
   def normalize_work_package(%{"id" => id} = wp) when is_integer(id) or is_binary(id) do
