@@ -405,9 +405,15 @@ defmodule SymphonyElixir.Config.Schema do
   end
 
   defp finalize_settings(settings) do
+    api_key_env =
+      case settings.tracker.kind do
+        "openproject" -> System.get_env("OPENPROJECT_API_KEY")
+        _ -> System.get_env("LINEAR_API_KEY")
+      end
+
     tracker = %{
       settings.tracker
-      | api_key: resolve_secret_setting(settings.tracker.api_key, System.get_env("LINEAR_API_KEY")),
+      | api_key: resolve_secret_setting(settings.tracker.api_key, api_key_env),
         assignee: resolve_secret_setting(settings.tracker.assignee, System.get_env("LINEAR_ASSIGNEE"))
     }
 

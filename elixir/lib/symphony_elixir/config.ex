@@ -119,18 +119,54 @@ defmodule SymphonyElixir.Config do
       is_nil(settings.tracker.kind) ->
         {:error, :missing_tracker_kind}
 
-      settings.tracker.kind not in ["linear", "memory"] ->
+      settings.tracker.kind not in ["linear", "memory", "openproject"] ->
         {:error, {:unsupported_tracker_kind, settings.tracker.kind}}
 
-      settings.tracker.kind == "linear" and not is_binary(settings.tracker.api_key) ->
+      settings.tracker.kind == "linear" ->
+        validate_linear_semantics(settings.tracker)
+
+      settings.tracker.kind == "openproject" ->
+        validate_openproject_semantics(settings.tracker)
+
+      true ->
+        :ok
+    end
+  end
+
+  defp validate_linear_semantics(tracker) do
+    cond do
+      not is_binary(tracker.api_key) ->
         {:error, :missing_linear_api_token}
 
-      settings.tracker.kind == "linear" and not is_binary(settings.tracker.project_slug) ->
+      not is_binary(tracker.project_slug) ->
         {:error, :missing_linear_project_slug}
 
       true ->
         :ok
     end
+  end
+
+  defp validate_openproject_semantics(tracker) do
+    cond do
+      default_linear_endpoint?(tracker.endpoint) ->
+        {:error, :missing_openproject_endpoint}
+
+      not is_binary(tracker.api_key) ->
+        {:error, :missing_openproject_api_token}
+
+      not is_binary(tracker.project_slug) ->
+        {:error, :missing_openproject_project}
+
+      is_binary(tracker.assignee) ->
+        {:error, :openproject_assignee_filter_not_supported}
+
+      true ->
+        :ok
+    end
+  end
+
+  defp default_linear_endpoint?(endpoint) do
+    is_nil(endpoint) or endpoint == "https://api.linear.app/graphql"
   end
 
   defp format_config_error(reason) do
