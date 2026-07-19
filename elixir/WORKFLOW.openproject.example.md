@@ -3,6 +3,7 @@ tracker:
   kind: openproject
   endpoint: "http://localhost:8080"
   project_slug: "crypto-server"
+  required_labels: []
   active_states:
     - New
     - In progress

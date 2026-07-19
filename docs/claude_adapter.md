@@ -24,8 +24,14 @@ Codex app-server. Selection is per-workflow via `agent.kind`.
   `turn/completed` payload, which the orchestrator's existing token
   accounting consumes unchanged (input = `input_tokens` +
   `cache_creation_input_tokens` + `cache_read_input_tokens`).
-- Linear access uses the `.claude/skills/linear` skill (curl +
-  `LINEAR_API_KEY`) instead of the Codex `linear_graphql` dynamic tool.
+- Tracker access uses an agent-side skill (curl-based) instead of a Codex
+  in-process dynamic tool: `.claude/skills/linear` (`LINEAR_API_KEY`) for
+  `tracker.kind: linear`, `.claude/skills/openproject` (`OPENPROJECT_API_KEY`)
+  for `tracker.kind: openproject`. Unlike the Codex adapter, which `unset`s
+  tracker secret env vars before exec'ing its child process (see
+  `docs/openproject_adapter.md`), the Claude adapter only strips
+  `ANTHROPIC_API_KEY` — the tracker's API key stays inherited so the skill's
+  `curl` calls can authenticate directly.
 
 ## Authentication (subscription plan)
 
