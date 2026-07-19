@@ -119,7 +119,7 @@ env var is missing, stop and record the blocker.
    - `Backlog` -> do not modify issue content/state; stop and wait for human to move it to `New`.
    - `New` -> immediately move to `In progress`, then ensure bootstrap workpad comment exists (create if missing), then start execution flow.
      - If PR is already attached, start by reviewing all open PR comments and deciding required changes vs explicit pushback responses.
-   - `In progress` -> continue execution flow from current scratchpad comment.
+   - `In progress` -> continue execution flow from the latest workpad comment.
    - `Human Review` -> wait and poll for decision/review updates.
    - `Merging` -> on entry, open and follow `.codex/skills/land/SKILL.md` (Codex) or `.claude/skills/land/SKILL.md` (Claude Code) — use the directory matching your CLI; do not call `gh pr merge` directly.
    - `Rework` -> run rework flow.
