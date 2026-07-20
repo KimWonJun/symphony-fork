@@ -33,11 +33,19 @@ defmodule SymphonyElixir.OpenProjectConfigTest do
   end
 
   test "openproject kind requires api key and project" do
-    write_openproject_workflow!(tracker_api_token: nil)
-    assert {:error, :missing_openproject_api_token} = Config.validate!()
+    # The api key falls back to OPENPROJECT_API_KEY, so clear it to assert the missing-token path.
+    original = System.get_env("OPENPROJECT_API_KEY")
+    System.delete_env("OPENPROJECT_API_KEY")
 
-    write_openproject_workflow!(tracker_project_slug: nil)
-    assert {:error, :missing_openproject_project} = Config.validate!()
+    try do
+      write_openproject_workflow!(tracker_api_token: nil)
+      assert {:error, :missing_openproject_api_token} = Config.validate!()
+
+      write_openproject_workflow!(tracker_project_slug: nil)
+      assert {:error, :missing_openproject_project} = Config.validate!()
+    after
+      restore_env("OPENPROJECT_API_KEY", original)
+    end
   end
 
   test "openproject kind rejects assignee filter" do
