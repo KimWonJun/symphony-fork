@@ -83,7 +83,12 @@ defmodule SymphonyElixir.Workflow do
   end
 
   defp split_front_matter(content) do
-    lines = String.split(content, ~r/\R/, trim: false)
+    # Split on ASCII line endings only. `~r/\R/` compiles in PCRE 8-bit mode,
+    # where `\R` also matches the bare byte 0x85 (NEL). That byte occurs inside
+    # many multi-byte UTF-8 characters (e.g. Hangul "션" = EC 85 98), so `\R`
+    # would split mid-character and the rejoin would corrupt it into invalid
+    # UTF-8, crashing later at String.to_charlist/1 in the agent server.
+    lines = String.split(content, ~r/\r\n|\n|\r/, trim: false)
 
     case lines do
       ["---" | tail] ->
