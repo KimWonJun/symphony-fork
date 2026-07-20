@@ -60,8 +60,9 @@ mix specs.check
 
 ## PR Requirements
 
-- PR body must follow `../.github/pull_request_template.md` exactly.
-- Validate PR body locally when needed:
+See [`../AGENTS.md`](../AGENTS.md) for the full PR body contract. In short: the body must
+follow `../.github/pull_request_template.md` exactly, keep no `<!-- ... -->` placeholders,
+and pass this check before it is sent to GitHub:
 
 ```bash
 mix pr_body.check --file /path/to/pr_body.md
