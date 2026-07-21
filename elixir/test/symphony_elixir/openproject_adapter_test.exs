@@ -72,9 +72,14 @@ defmodule SymphonyElixir.OpenProjectAdapterTest do
                Adapter.validate_config(valid_tracker_settings(%{project_slug: nil}))
     end
 
-    test "rejects an assignee filter" do
-      assert {:error, :openproject_assignee_filter_not_supported} =
-               Adapter.validate_config(valid_tracker_settings(%{assignee: "me"}))
+    test "accepts an assignee filter" do
+      assert :ok = Adapter.validate_config(valid_tracker_settings(%{assignee: "me"}))
+      assert :ok = Adapter.validate_config(valid_tracker_settings(%{assignee: "41"}))
+    end
+
+    test "rejects a blank assignee filter" do
+      assert {:error, :invalid_openproject_assignee} =
+               Adapter.validate_config(valid_tracker_settings(%{assignee: "   "}))
     end
 
     test "rejects a missing active_states list" do

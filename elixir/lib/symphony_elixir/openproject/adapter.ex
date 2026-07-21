@@ -27,8 +27,8 @@ defmodule SymphonyElixir.OpenProject.Adapter do
       not present_string?(tracker_settings.project_slug) ->
         {:error, :missing_openproject_project}
 
-      is_binary(tracker_settings.assignee) ->
-        {:error, :openproject_assignee_filter_not_supported}
+      is_binary(tracker_settings.assignee) and not present_string?(tracker_settings.assignee) ->
+        {:error, :invalid_openproject_assignee}
 
       empty_states?(tracker_settings.active_states) ->
         {:error, :missing_openproject_active_states}

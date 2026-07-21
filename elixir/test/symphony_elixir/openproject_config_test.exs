@@ -48,10 +48,10 @@ defmodule SymphonyElixir.OpenProjectConfigTest do
     end
   end
 
-  test "openproject kind rejects assignee filter" do
+  test "openproject kind accepts assignee filter" do
     write_openproject_workflow!(tracker_assignee: "me")
 
-    assert {:error, :openproject_assignee_filter_not_supported} = Config.validate!()
+    assert :ok = Config.validate!()
   end
 
   test "openproject kind requires an explicit active_states list" do

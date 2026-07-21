@@ -27,8 +27,30 @@ defmodule SymphonyElixir.OpenProject.Client do
           {:ok, []}
 
         ids ->
-          fetch_pages([%{"status" => %{"operator" => "=", "values" => Enum.map(ids, &to_string/1)}}], 1, [])
+          status_filter = %{"status" => %{"operator" => "=", "values" => Enum.map(ids, &to_string/1)}}
+          fetch_pages([status_filter | assignee_filter()], 1, [])
       end
+    end
+  end
+
+  # 후보 조회에만 붙는 담당자 필터. `tracker.assignee` 가 설정되면 그 사용자에게 배정된
+  # work package 만 디스패치 대상이 된다(팀 공용 인스턴스에서 남의 티켓을 집지 않도록).
+  #
+  # OpenProject 는 `values: ["me"]` 를 인증 주체로 해석하므로 사용자 id 를 몰라도 된다.
+  # 미설정이면 필터를 붙이지 않아 기존 동작(상태만으로 조회)을 유지한다.
+  #
+  # `fetch_issues_by_ids/1` 에는 일부러 적용하지 않는다. 그쪽은 이미 claim 한 이슈의
+  # 현재 상태를 확인하는 경로라, 작업 도중 담당자가 바뀌어도 종료 상태 추적을 놓치면 안 된다.
+  defp assignee_filter do
+    case Config.settings!().tracker.assignee do
+      value when is_binary(value) ->
+        case String.trim(value) do
+          "" -> []
+          trimmed -> [%{"assignee" => %{"operator" => "=", "values" => [trimmed]}}]
+        end
+
+      _ ->
+        []
     end
   end
 
