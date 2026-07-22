@@ -195,6 +195,8 @@ codex:
   reload error until the file is fixed.
 - `server.port` or CLI `--port` enables the optional Phoenix LiveView dashboard and JSON API at
   `/`, `/api/v1/state`, `/api/v1/<issue_identifier>`, and `/api/v1/refresh`.
+- `board.enabled: true` additionally enables a tracker-first kanban board at `/board` (see
+  "Web dashboard" below). Disabled by default; `/board` returns 404 while disabled.
 
 ### Linear adapter profile
 
@@ -247,6 +249,31 @@ The observability UI now runs on a minimal Phoenix stack:
 - Bandit as the HTTP server
 - Phoenix dependency static assets for the LiveView client bootstrap
 - Tracker issue identifiers link to the tracker-provided URL when it uses `http` or `https`
+
+### Kanban board (`/board`)
+
+Unlike the runtime-first dashboard at `/` (only renders what the orchestrator currently holds),
+`/board` is tracker-first: every work item in `board.columns` is laid out by state, with the
+Symphony runtime status (running / retrying / blocked) overlaid per card when present, joined by
+`issue_identifier`.
+
+```yaml
+board:
+  enabled: true
+  refresh_interval_ms: 15000
+  columns:
+    - New
+    - In progress
+    - Done
+```
+
+- All fields are optional. `enabled` defaults to `false`. `columns` defaults to
+  `tracker.active_states ++ tracker.terminal_states`.
+- `SymphonyElixir.BoardStore` polls the configured tracker (reusing
+  `SymphonyElixir.Tracker.fetch_issues_by_states/1`, so it works with any tracker adapter) on
+  `refresh_interval_ms` and keeps the last known good snapshot on fetch failure, surfacing a stale
+  banner instead of blanking the board.
+- Read-only for now: no drag-and-drop or status writes yet.
 
 ## Project Layout
 

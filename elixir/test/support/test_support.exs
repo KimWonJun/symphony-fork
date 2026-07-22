@@ -131,6 +131,9 @@ defmodule SymphonyElixir.TestSupport do
           observability_render_interval_ms: 16,
           server_port: nil,
           server_host: nil,
+          board_enabled: nil,
+          board_refresh_interval_ms: nil,
+          board_columns: nil,
           prompt: @workflow_prompt
         ],
         overrides
@@ -176,6 +179,9 @@ defmodule SymphonyElixir.TestSupport do
     observability_render_interval_ms = Keyword.get(config, :observability_render_interval_ms)
     server_port = Keyword.get(config, :server_port)
     server_host = Keyword.get(config, :server_host)
+    board_enabled = Keyword.get(config, :board_enabled)
+    board_refresh_interval_ms = Keyword.get(config, :board_refresh_interval_ms)
+    board_columns = Keyword.get(config, :board_columns)
     prompt = Keyword.get(config, :prompt)
 
     sections =
@@ -219,6 +225,7 @@ defmodule SymphonyElixir.TestSupport do
         hooks_yaml(hook_after_create, hook_before_run, hook_after_run, hook_before_remove, hook_timeout_ms),
         observability_yaml(observability_enabled, observability_refresh_ms, observability_render_interval_ms),
         server_yaml(server_port, server_host),
+        board_yaml(board_enabled, board_refresh_interval_ms, board_columns),
         "---",
         prompt
       ]
@@ -298,6 +305,19 @@ defmodule SymphonyElixir.TestSupport do
       host && "  host: #{yaml_value(host)}"
     ]
     |> Enum.reject(&is_nil/1)
+    |> Enum.join("\n")
+  end
+
+  defp board_yaml(nil, nil, nil), do: nil
+
+  defp board_yaml(enabled, refresh_interval_ms, columns) do
+    [
+      "board:",
+      !is_nil(enabled) && "  enabled: #{yaml_value(enabled)}",
+      !is_nil(refresh_interval_ms) && "  refresh_interval_ms: #{yaml_value(refresh_interval_ms)}",
+      !is_nil(columns) && "  columns: #{yaml_value(columns)}"
+    ]
+    |> Enum.reject(&(&1 in [nil, false]))
     |> Enum.join("\n")
   end
 

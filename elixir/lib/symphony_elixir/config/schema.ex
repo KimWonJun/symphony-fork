@@ -320,6 +320,26 @@ defmodule SymphonyElixir.Config.Schema do
     end
   end
 
+  defmodule Board do
+    @moduledoc false
+    use Ecto.Schema
+    import Ecto.Changeset
+
+    @primary_key false
+    embedded_schema do
+      field(:enabled, :boolean, default: false)
+      field(:refresh_interval_ms, :integer, default: 15_000)
+      field(:columns, {:array, :string})
+    end
+
+    @spec changeset(%__MODULE__{}, map()) :: Ecto.Changeset.t()
+    def changeset(schema, attrs) do
+      schema
+      |> cast(attrs, [:enabled, :refresh_interval_ms, :columns], empty_values: [])
+      |> validate_number(:refresh_interval_ms, greater_than: 0)
+    end
+  end
+
   embedded_schema do
     embeds_one(:tracker, Tracker, on_replace: :update, defaults_to_struct: true)
     embeds_one(:polling, Polling, on_replace: :update, defaults_to_struct: true)
@@ -331,6 +351,7 @@ defmodule SymphonyElixir.Config.Schema do
     embeds_one(:hooks, Hooks, on_replace: :update, defaults_to_struct: true)
     embeds_one(:observability, Observability, on_replace: :update, defaults_to_struct: true)
     embeds_one(:server, Server, on_replace: :update, defaults_to_struct: true)
+    embeds_one(:board, Board, on_replace: :update, defaults_to_struct: true)
   end
 
   @spec parse(map()) :: {:ok, %__MODULE__{}} | {:error, {:invalid_workflow_config, String.t()}}
@@ -426,6 +447,7 @@ defmodule SymphonyElixir.Config.Schema do
     |> cast_embed(:hooks, with: &Hooks.changeset/2)
     |> cast_embed(:observability, with: &Observability.changeset/2)
     |> cast_embed(:server, with: &Server.changeset/2)
+    |> cast_embed(:board, with: &Board.changeset/2)
   end
 
   defp finalize_settings(settings) do
@@ -459,8 +481,19 @@ defmodule SymphonyElixir.Config.Schema do
         turn_sandbox_policy: normalize_optional_map(settings.codex.turn_sandbox_policy)
     }
 
-    %{settings | tracker: tracker, workspace: workspace, codex: codex}
+    board = %{
+      settings.board
+      | columns: resolve_board_columns(settings.board.columns, active_states, terminal_states)
+    }
+
+    %{settings | tracker: tracker, workspace: workspace, codex: codex, board: board}
   end
+
+  defp resolve_board_columns(columns, active_states, terminal_states) when columns in [nil, []] do
+    (active_states || []) ++ (terminal_states || [])
+  end
+
+  defp resolve_board_columns(columns, _active_states, _terminal_states), do: columns
 
   defp resolve_tracker_secrets(%{tracker: %{kind: "linear"} = tracker}, provider) do
     linear_provider =

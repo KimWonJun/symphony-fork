@@ -14,6 +14,10 @@ defmodule SymphonyElixirWeb.Router do
     plug(:put_secure_browser_headers)
   end
 
+  pipeline :require_board_enabled do
+    plug(:check_board_enabled)
+  end
+
   scope "/", SymphonyElixirWeb do
     get("/dashboard.css", StaticAssetController, :dashboard_css)
     get("/favicon.png", StaticAssetController, :favicon)
@@ -29,6 +33,12 @@ defmodule SymphonyElixirWeb.Router do
   end
 
   scope "/", SymphonyElixirWeb do
+    pipe_through([:browser, :require_board_enabled])
+
+    live("/board", BoardLive, :index)
+  end
+
+  scope "/", SymphonyElixirWeb do
     get("/api/v1/state", ObservabilityApiController, :state)
 
     match(:*, "/", ObservabilityApiController, :method_not_allowed)
@@ -38,5 +48,15 @@ defmodule SymphonyElixirWeb.Router do
     get("/api/v1/:issue_identifier", ObservabilityApiController, :issue)
     match(:*, "/api/v1/:issue_identifier", ObservabilityApiController, :method_not_allowed)
     match(:*, "/*path", ObservabilityApiController, :not_found)
+  end
+
+  defp check_board_enabled(conn, _opts) do
+    if SymphonyElixir.Config.settings!().board.enabled do
+      conn
+    else
+      conn
+      |> Plug.Conn.send_resp(404, "Not Found")
+      |> Plug.Conn.halt()
+    end
   end
 end

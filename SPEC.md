@@ -1629,6 +1629,23 @@ API design notes:
 - If the dashboard is a client-side app, it SHOULD consume this API rather than duplicating state
   logic.
 
+#### 13.7.3 OPTIONAL Tracker-First Kanban Board (`/board`)
+
+Implementations MAY host a second, tracker-first surface alongside the runtime-first dashboard in
+13.7.1. Where 13.7.1 renders only what the orchestrator currently holds, this surface SHOULD lay
+out every tracked work item first and overlay the runtime status on top, joined by
+`issue_identifier`.
+
+- The board SHOULD be disabled by default and gated behind explicit configuration, since it adds a
+  second polling loop and route beyond the always-optional dashboard.
+- Columns SHOULD default to `tracker.active_states ++ tracker.terminal_states` when not configured
+  explicitly, so a project's existing workflow states drive the layout without duplication.
+- The board's poll loop SHOULD keep the last known good snapshot on tracker fetch failure and
+  surface a stale indicator, rather than blanking the board or crashing the poller.
+- Read-only boards (no drag-and-drop or write-back) are a valid and complete implementation of this
+  section; write-back (status transitions via drag-and-drop, constrained by the tracker's own
+  allowed transitions, with server-side revalidation) is an OPTIONAL extension on top.
+
 ## 14. Failure Model and Recovery Strategy
 
 ### 14.1 Failure Classes
