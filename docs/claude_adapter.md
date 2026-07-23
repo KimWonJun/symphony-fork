@@ -10,10 +10,33 @@ Codex app-server. Selection is per-workflow via `agent.kind`.
 | `agent.kind` | `codex` | `claude` switches the execution layer to Claude Code |
 | `claude.command` | `claude` | Executable (or wrapper) launched via `bash -lc` in the issue workspace |
 | `claude.model` | (CLI default) | Passed as `--model` |
+| `claude.model_by_state` | `{}` | Per-issue-state model override; falls back to `claude.model` |
 | `claude.permission_mode` | `bypassPermissions` | Passed as `--permission-mode` (`default`, `acceptEdits`, `plan`, `bypassPermissions`) |
 | `claude.dangerously_skip_permissions` | `false` | When true, uses `--dangerously-skip-permissions` instead of `--permission-mode` |
 | `claude.extra_args` | `""` | Appended verbatim (e.g. `--mcp-config mcp.json --allowedTools "Bash,Edit"`) |
 | `claude.turn_timeout_ms` | `3600000` | Per-turn wall clock limit |
+
+### Per-state model overrides
+
+`claude.model_by_state` picks a model from the issue's current state, so a multi-stage
+workflow can spend a stronger model where judgement matters and a cheaper one where the
+plan is already written:
+
+```yaml
+claude:
+  model: claude-opus-4-8          # global fallback
+  model_by_state:
+    "In specification": claude-opus-4-8   # analysis
+    "Confirmed": claude-sonnet-5          # implementation
+```
+
+State keys are matched after trimming and lowercasing, so `"Confirmed"`, `"confirmed"`
+and `"  CONFIRMED  "` all hit the same entry. A state with no entry falls back to
+`claude.model`; when neither is set, no `--model` flag is passed at all and the CLI
+default applies. Blank state names and non-string models are rejected at config load.
+
+Only the model varies per state — `permission_mode`, `extra_args` and the rest stay
+global.
 
 ## How it maps to the Codex flow
 

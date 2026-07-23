@@ -55,6 +55,26 @@ defmodule SymphonyElixir.Config do
 
   def max_concurrent_agents_for_state(_state_name), do: settings!().agent.max_concurrent_agents
 
+  @doc """
+  이슈 상태에 해당하는 Claude 모델을 돌려준다.
+
+  `claude.model_by_state` 에 상태별 오버라이드가 있으면 그 값을, 없으면 전역
+  `claude.model` 을 쓴다. 둘 다 없으면 `nil` 이며 그때는 `--model` 플래그가 붙지 않는다
+  (claude CLI 기본 모델). 분석은 Opus, 구현은 Sonnet 처럼 단계별로 나눌 때 쓴다.
+  """
+  @spec claude_model_for_state(term()) :: String.t() | nil
+  def claude_model_for_state(state_name) when is_binary(state_name) do
+    config = settings!()
+
+    Map.get(
+      config.claude.model_by_state,
+      Schema.normalize_issue_state(state_name),
+      config.claude.model
+    )
+  end
+
+  def claude_model_for_state(_state_name), do: settings!().claude.model
+
   @spec codex_turn_sandbox_policy(Path.t() | nil) :: map()
   def codex_turn_sandbox_policy(workspace \\ nil) do
     case Schema.resolve_runtime_turn_sandbox_policy(settings!(), workspace) do
