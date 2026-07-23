@@ -234,6 +234,8 @@ defmodule SymphonyElixir.Config.Schema do
     use Ecto.Schema
     import Ecto.Changeset
 
+    alias SymphonyElixir.Config.Schema
+
     @primary_key false
     embedded_schema do
       field(:command, :string, default: "claude")
@@ -242,6 +244,9 @@ defmodule SymphonyElixir.Config.Schema do
       field(:dangerously_skip_permissions, :boolean, default: false)
       field(:extra_args, :string, default: "")
       field(:turn_timeout_ms, :integer, default: 3_600_000)
+      # 이슈 상태별 모델 오버라이드. 키는 issue state, 값은 모델 이름.
+      # 비어 있거나 키가 없으면 위의 `model` 로 폴백한다(기존 동작과 동일).
+      field(:model_by_state, :map, default: %{})
     end
 
     @spec changeset(%__MODULE__{}, map()) :: Ecto.Changeset.t()
@@ -249,12 +254,22 @@ defmodule SymphonyElixir.Config.Schema do
       schema
       |> cast(
         attrs,
-        [:command, :model, :permission_mode, :dangerously_skip_permissions, :extra_args, :turn_timeout_ms],
+        [
+          :command,
+          :model,
+          :permission_mode,
+          :dangerously_skip_permissions,
+          :extra_args,
+          :turn_timeout_ms,
+          :model_by_state
+        ],
         empty_values: []
       )
       |> validate_required([:command])
       |> validate_inclusion(:permission_mode, ["default", "acceptEdits", "plan", "bypassPermissions"])
       |> validate_number(:turn_timeout_ms, greater_than: 0)
+      |> update_change(:model_by_state, &Schema.normalize_state_limits/1)
+      |> Schema.validate_state_models(:model_by_state)
     end
   end
 
@@ -391,6 +406,25 @@ defmodule SymphonyElixir.Config.Schema do
   def normalize_state_limits(limits) when is_map(limits) do
     Enum.reduce(limits, %{}, fn {state_name, limit}, acc ->
       Map.put(acc, normalize_issue_state(to_string(state_name)), limit)
+    end)
+  end
+
+  @doc false
+  @spec validate_state_models(Ecto.Changeset.t(), atom()) :: Ecto.Changeset.t()
+  def validate_state_models(changeset, field) do
+    validate_change(changeset, field, fn ^field, models ->
+      Enum.flat_map(models, fn {state_name, model} ->
+        cond do
+          state_name |> to_string() |> String.trim() == "" ->
+            [{field, "state names must not be blank"}]
+
+          not is_binary(model) or String.trim(model) == "" ->
+            [{field, "models must be non-empty strings"}]
+
+          true ->
+            []
+        end
+      end)
     end)
   end
 

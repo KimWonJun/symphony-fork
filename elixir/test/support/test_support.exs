@@ -110,6 +110,7 @@ defmodule SymphonyElixir.TestSupport do
           agent_kind: "codex",
           claude_command: "claude",
           claude_model: nil,
+          claude_model_by_state: %{},
           claude_permission_mode: "bypassPermissions",
           claude_dangerously_skip_permissions: false,
           claude_extra_args: "",
@@ -155,6 +156,7 @@ defmodule SymphonyElixir.TestSupport do
     agent_kind = Keyword.get(config, :agent_kind)
     claude_command = Keyword.get(config, :claude_command)
     claude_model = Keyword.get(config, :claude_model)
+    claude_model_by_state = Keyword.get(config, :claude_model_by_state)
     claude_permission_mode = Keyword.get(config, :claude_permission_mode)
     claude_dangerously_skip_permissions = Keyword.get(config, :claude_dangerously_skip_permissions)
     claude_extra_args = Keyword.get(config, :claude_extra_args)
@@ -212,6 +214,7 @@ defmodule SymphonyElixir.TestSupport do
         "claude:",
         "  command: #{yaml_value(claude_command)}",
         "  model: #{yaml_value(claude_model)}",
+        "  model_by_state: #{yaml_value(claude_model_by_state)}",
         "  permission_mode: #{yaml_value(claude_permission_mode)}",
         "  dangerously_skip_permissions: #{yaml_value(claude_dangerously_skip_permissions)}",
         "  extra_args: #{yaml_value(claude_extra_args)}",

@@ -64,7 +64,7 @@ defmodule SymphonyElixir.Claude.AgentServer do
     resume_id = Agent.get(state_pid, & &1.claude_session_id)
     timeout_ms = Config.settings!().claude.turn_timeout_ms
 
-    case start_port(workspace, prompt, resume_id) do
+    case start_port(workspace, prompt, resume_id, issue_state(issue)) do
       {:ok, port} ->
         metadata = port_metadata(port)
 
@@ -173,7 +173,12 @@ defmodule SymphonyElixir.Claude.AgentServer do
   defp int(value) when is_integer(value), do: value
   defp int(_value), do: 0
 
-  defp start_port(workspace, prompt, resume_id) do
+  # 모델을 상태별로 고르기 위해 이슈에서 state 만 뽑는다. 이슈가 없거나
+  # state 가 문자열이 아니면 nil 을 주고, 그때는 전역 claude.model 로 폴백한다.
+  defp issue_state(%{state: state}) when is_binary(state), do: state
+  defp issue_state(_issue), do: nil
+
+  defp start_port(workspace, prompt, resume_id, issue_state) do
     case System.find_executable("bash") do
       nil ->
         {:error, :bash_not_found}
@@ -186,7 +191,7 @@ defmodule SymphonyElixir.Claude.AgentServer do
               :binary,
               :exit_status,
               :stderr_to_stdout,
-              args: [~c"-lc", String.to_charlist(build_command(prompt, resume_id))],
+              args: [~c"-lc", String.to_charlist(build_command(prompt, resume_id, issue_state))],
               cd: String.to_charlist(workspace),
               env: [{~c"ANTHROPIC_API_KEY", false}],
               line: @port_line_bytes
@@ -197,8 +202,9 @@ defmodule SymphonyElixir.Claude.AgentServer do
     end
   end
 
-  defp build_command(prompt, resume_id) do
+  defp build_command(prompt, resume_id, issue_state) do
     claude = Config.settings!().claude
+    model = Config.claude_model_for_state(issue_state)
 
     flags =
       [
@@ -207,7 +213,7 @@ defmodule SymphonyElixir.Claude.AgentServer do
         "--output-format stream-json",
         "--verbose",
         resume_id && "--resume #{shell_escape(resume_id)}",
-        claude.model && "--model #{shell_escape(claude.model)}",
+        model && "--model #{shell_escape(model)}",
         permission_flag(claude),
         extra_args_flag(claude.extra_args)
       ]

@@ -96,6 +96,54 @@ defmodule SymphonyElixir.ClaudeAgentServerTest do
     end
   end
 
+  describe "claude.model_by_state" do
+    # 실제로 실행된 인자를 trace 파일로 확인한다. 설정만 검사하면 값이 명령까지
+    # 흘러갔는지 알 수 없다.
+    defp model_flag_for_state!(name, state, workflow_opts) do
+      {test_root, workspace_root, workspace} = setup_workspace!(name)
+      trace_file = Path.join(test_root, "trace")
+      script = write_fake_claude!(test_root, trace_file, @success_ndjson)
+
+      try do
+        write_workflow_file!(
+          Workflow.workflow_file_path(),
+          [workspace_root: workspace_root, agent_kind: "claude", claude_command: script] ++ workflow_opts
+        )
+
+        {:ok, session} = ClaudeServer.start_session(workspace)
+        issue = %{issue_fixture() | state: state}
+        assert {:ok, _turn} = ClaudeServer.run_turn(session, "do the task", issue)
+
+        trace = File.read!(trace_file)
+
+        case Regex.run(~r/--model (\S+)/, trace) do
+          [_, model] -> model
+          nil -> nil
+        end
+      after
+        File.rm_rf(test_root)
+      end
+    end
+
+    test "uses the per-state model when the issue state has an override" do
+      assert model_flag_for_state!("model-state", "Confirmed",
+               claude_model: "claude-opus-4-8",
+               claude_model_by_state: %{"Confirmed" => "claude-sonnet-5"}
+             ) == "claude-sonnet-5"
+    end
+
+    test "falls back to the global model for states without an override" do
+      assert model_flag_for_state!("model-fallback", "In specification",
+               claude_model: "claude-opus-4-8",
+               claude_model_by_state: %{"Confirmed" => "claude-sonnet-5"}
+             ) == "claude-opus-4-8"
+    end
+
+    test "omits the model flag entirely when nothing is configured" do
+      assert model_flag_for_state!("model-none", "In specification", []) == nil
+    end
+  end
+
   test "run_turn drives one claude -p invocation and reports cumulative usage" do
     {test_root, workspace_root, workspace} = setup_workspace!("happy")
     trace_file = Path.join(test_root, "trace")
