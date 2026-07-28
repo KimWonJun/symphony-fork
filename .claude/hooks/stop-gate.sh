@@ -16,6 +16,8 @@ fi
 level=$(cat "$level_path" 2>/dev/null || echo skip)
 [ "$level" = "skip" ] && exit 0
 
+cd "${CLAUDE_PROJECT_DIR:-$PWD}" 2>/dev/null || true
+
 report=$(GATE_LEVEL="$level" AUTO_FIX=1 "$GATE" 2>/dev/null | tail -1)
 result=$(printf '%s' "$report" | jq -r '.result // "fail"')
 if [ "$result" = "pass" ]; then
