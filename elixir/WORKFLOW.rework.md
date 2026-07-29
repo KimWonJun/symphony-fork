@@ -7,6 +7,7 @@ tracker:
   required_labels: []
   active_states:
     - Test failed
+    - In progress
   terminal_states:
     - Closed
     - Rejected

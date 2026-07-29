@@ -7,6 +7,7 @@ tracker:
   required_labels: []
   active_states:
     - Confirmed
+    - In progress
   terminal_states:
     - Closed
     - Rejected
