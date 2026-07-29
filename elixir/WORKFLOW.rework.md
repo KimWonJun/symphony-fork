@@ -10,7 +10,6 @@ tracker:
   terminal_states:
     - Closed
     - Rejected
-    - Developed
 polling:
   interval_ms: 15000
 workspace:
@@ -18,7 +17,7 @@ workspace:
 hooks:
   after_create: |
     set -eu
-    cp -R "$HOME/symphony-fork/.claude" .claude
+    cp -R "${SYMPHONY_CLAUDE_SRC:-$HOME/symphony-fork/.claude}" .claude
     echo unit > .claude/gate-level
   before_run: |
     set -eu
