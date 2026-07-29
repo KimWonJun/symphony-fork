@@ -87,6 +87,17 @@ hooks:
         echo "worktree ready: $REPO ($BR from origin/$BASE, via $ORIGIN)"
       fi
     done
+agent:
+  kind: claude
+  max_concurrent_agents: 1
+  max_turns: 5
+claude:
+  command: claude
+  model: claude-opus-4-8
+  permission_mode: bypassPermissions
+  turn_timeout_ms: 3600000
+server:
+  port: 4001
 ---
 
 당신은 재작업 에이전트다. Test failed 로 반려된 WP를 고쳐 다시 Developed 로 올린다.

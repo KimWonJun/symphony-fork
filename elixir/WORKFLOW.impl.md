@@ -87,6 +87,17 @@ hooks:
         echo "worktree ready: $REPO ($BR from origin/$BASE, via $ORIGIN)"
       fi
     done
+agent:
+  kind: claude
+  max_concurrent_agents: 1
+  max_turns: 5
+claude:
+  command: claude
+  model: claude-opus-4-8
+  permission_mode: bypassPermissions
+  turn_timeout_ms: 3600000
+server:
+  port: 4001
 ---
 # 2차 작업: 구현
 
