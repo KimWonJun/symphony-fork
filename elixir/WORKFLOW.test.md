@@ -103,13 +103,13 @@ hooks:
 5. 게이트가 파일을 자동수정(리포트 JSON의 fixedFiles가 비어있지 않음)했으면:
    git add -A && git commit -m "[chore] style: spotlessApply (verify-gate)" 후 push
    하고 게이트를 한 번 더 실행한다.
-6. 판정:
+6. 판정(4봇 토폴로지 핸드오프 — assignee는 status와 같은 PATCH로 `_links`에 함께 넣어 한 번에 재할당한다: `{"lockVersion":L,"_links":{"status":{"href":"/api/v3/statuses/<SID>"},"assignee":{"href":"/api/v3/users/<UID>"}}}`):
    - 게이트 result=pass 이고 추가구현/테스트보강 불필요 → status Tested(/api/v3/statuses/234).
-     `## Verify Report` 코멘트에 통과 요약을 남긴다.
+     `## Verify Report` 코멘트에 통과 요약을 남긴다. assignee는 사람 검토를 위해 변경하지 않는다(파이프라인 종료, 봇 재할당 없음).
    - 자동조치 불가(추가 구현 필요/테스트 코드 부족/게이트 fail) →
      `## Rework Needed` 코멘트에 무엇을 고쳐야 하는지 구체적으로 쓴 뒤,
      본문의 `Rework-Round: N` 라인을 읽는다(없으면 0).
-       - N < 3 → 본문에 `Rework-Round: {N+1}` 기록, status Test failed(/api/v3/statuses/235).
-       - N >= 3 → status On hold(/api/v3/statuses/237), 코멘트에 "3회 재작업 초과, 사람 개입 필요" 명시.
+       - N < 3 → 본문에 `Rework-Round: {N+1}` 기록, status Test failed(/api/v3/statuses/235)로 전환하며 같은 PATCH에서 assignee를 rework-bot(유저 56, `/api/v3/users/56`)으로 재할당한다: `{"lockVersion":L,"_links":{"status":{"href":"/api/v3/statuses/235"},"assignee":{"href":"/api/v3/users/56"}}}`.
+       - N >= 3 → status On hold(/api/v3/statuses/237), 코멘트에 "3회 재작업 초과, 사람 개입 필요" 명시. assignee는 사람 개입을 위해 봇 재할당하지 않는다.
 7. 자동조치 가능한 것(포맷/기계적 빌드·의존성 에러)은 5번처럼 커밋하고 재검증한다.
    로직 변경·설계 변경이 필요한 것은 자동조치하지 말고 Rework Needed로 넘긴다.

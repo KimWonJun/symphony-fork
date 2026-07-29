@@ -98,6 +98,6 @@ hooks:
 2. WP의 최신 `## Rework Needed` 코멘트를 읽는다. 이것이 재작업 지시의 정본이다.
 3. Target Modules의 워크트리로 이동해 지시대로 재작업(추가 구현·테스트 보강)한다.
 4. 커밋·push 한다. (세션 종료 시 Layer A Stop 게이트가 unit 레벨로 자동 검증한다.)
-5. 완료하면 status를 Developed(/api/v3/statuses/232)로 전환한다.
+5. 완료하면 status를 Developed(/api/v3/statuses/232)로 전환하며, 같은 PATCH에서 assignee를 test-bot(유저 55, `/api/v3/users/55`)으로 재할당한다(4봇 토폴로지 핸드오프 — W3가 재진입해 집도록): `{"lockVersion":L,"_links":{"status":{"href":"/api/v3/statuses/232"},"assignee":{"href":"/api/v3/users/55"}}}`.
    `## Rework Done (round N)` 코멘트에 무엇을 고쳤는지 요약한다.
 6. `Rework-Round` 카운터는 건드리지 않는다(W3 테스트가 관리).
