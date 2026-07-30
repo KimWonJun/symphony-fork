@@ -22,13 +22,15 @@ The response includes `lockVersion` (needed for every update) and
 
 ## Change the status (ALWAYS read lockVersion first)
 
-OpenProject uses optimistic locking. Updates without the current
+OpenProject uses optimistic locking.
+> NOTE: WP 응답에 embedded 리소스의 lockVersion이 함께 올 수 있으므로 lockVersion은 반드시 위처럼 최상위 JSON에서 python으로 읽는다(grep 금지).
+ Updates without the current
 `lockVersion` fail; a 409 means someone updated the work package after your
 read — re-read and retry once.
 
 ```bash
 # 1. Read current lockVersion
-LOCK=$(curl -s -u "apikey:$OPENPROJECT_API_KEY" "$OPENPROJECT_URL/api/v3/work_packages/37" | grep -o '"lockVersion":[0-9]*' | cut -d: -f2)
+LOCK=$(curl -s -u "apikey:$OPENPROJECT_API_KEY" "$OPENPROJECT_URL/api/v3/work_packages/37" | python3 -c "import sys,json;print(json.load(sys.stdin)['lockVersion'])")
 
 # 2. Resolve the target status id (statuses are stable; cache mentally)
 curl -s -u "apikey:$OPENPROJECT_API_KEY" "$OPENPROJECT_URL/api/v3/statuses" | grep -o '{"_type":"Status"[^}]*}' | grep -o '"id":[0-9]*,"name":"[^"]*"'
