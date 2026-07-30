@@ -145,7 +145,23 @@ server:
   이관됨 → X 는 대상 아님")
 - 확인하지 못한 부분 / 사람 판단이 필요한 지점
 
-## 산출물 2: description에 구현 계획서 추가
+## 분기 판단: 개발 필요 여부 (조사 후 반드시 분류)
+
+조사(위 절차)를 마치면 이 WP를 두 갈래 중 하나로 분류한다.
+
+- **개발 불필요 신호를 먼저 본다**: WP에 `no-dev`/`verification` 류 라벨이나 검증 성격의
+  type 이 붙어 있으면 그 방향(개발 불필요)을 우선 가정하고 조사로 확정한다.
+- **없으면 조사 결과로 자율 판별**한다.
+
+**개발 불필요**로 분류 = 조사로 다음 중 하나가 확인된 경우: (a) 요구 기능이 이미
+구현/해결되어 있음, (b) 코드 수정·추가 개발이 필요 없음, (c) 단순 검증 작업(코드 변경 없이
+확인만 필요). → **산출물 2-B (개발 불필요)** 로 간다. Target Modules/Implementation Plan 을
+쓰지 않는다.
+
+**개발 필요**로 분류 = 위 어디에도 해당하지 않음(기본값). → **산출물 2-A (개발 필요)** 로 간다.
+**애매하면 반드시 개발 필요로 둔다(안전 기본값).** 개발 불필요는 조사 근거가 분명할 때만.
+
+## 산출물 2-A (개발 필요): description에 구현 계획서 추가
 
 description **끝**에 아래 두 섹션을 이 순서로 추가한다. 이미 있으면 교체한다.
 이 두 섹션이 사람의 검토 대상이자 2차 구현의 유일한 입력이다.
@@ -220,11 +236,32 @@ description **끝**에 아래 두 섹션을 이 순서로 추가한다. 이미 �
 - 사람은 이 계획을 UI 에서 직접 수정할 수 있다. 잘못된 지점·빠진 검증을 사람이 고치고,
   `Decisions Needed` 에 답한 뒤 `Confirmed` 로 넘긴다.
 
+## 산출물 2-B (개발 불필요): 조사 결론
+
+개발 불필요로 분류한 경우, description **끝**에 아래 두 섹션을 이 순서로 추가한다.
+**`## Target Modules` 는 만들지 않는다** (구현 대상 없음).
+
+### `## Investigation`
+- 무엇을 확인했는지 + **개발이 불필요하다는 증거**를 파일 경로:라인/커밋으로 제시한다.
+  예) "요구 기능은 `X.kt:120` 에 이미 구현됨(commit abc1234)", "검증 결과 4종 API 정상 동작 확인".
+
+### `## Conclusion: No Development Needed`
+- 분류: `이미 구현됨` / `수정 불요` / `검증 전용` 중 하나 + 근거 1~3줄.
+- 사람 조치 권고 한 줄: **"추가 개발 불필요 — Confirmed 하지 말고 검토 후 Close 하세요."**
+
 ## 마지막 단계
 
-두 섹션을 다 쓴 뒤 status를 Specified(/api/v3/statuses/227)로 전환하면서 **같은 PATCH에서
-assignee를 impl-bot(유저 54, `/api/v3/users/54`)으로 재할당**한다(4봇 핸드오프 — 사람이
-Confirmed로 올리면 W2가 집도록):
+**(개발 필요, 산출물 2-A)** — 두 섹션을 다 쓴 뒤 status를 Specified(/api/v3/statuses/227)로
+전환하면서 **같은 PATCH에서 assignee를 impl-bot(유저 54, `/api/v3/users/54`)으로 재할당**한다
+(4봇 핸드오프 — 사람이 Confirmed로 올리면 W2가 집도록):
 `{"lockVersion":L,"_links":{"status":{"href":"/api/v3/statuses/227"},"assignee":{"href":"/api/v3/users/54"}}}`
-Symphony가 세션을 종료하고 사람의 검토를 기다린다. 사람이 계획을 확인·수정하고
-`Confirmed`로 바꾸면 2차 작업이 시작된다.
+
+**(개발 불필요, 산출물 2-B)** — status를 Specified(/api/v3/statuses/227)로 전환한다.
+**assignee는 impl-bot으로 재할당하지 않는다**(구현 없음 — 사람이 검토 후 Close). 워크패드에
+"개발 불필요 — Close 권장"을 명시한다:
+`{"lockVersion":L,"_links":{"status":{"href":"/api/v3/statuses/227"}}}`
+Target Modules 가 없고 assignee 도 impl-bot 이 아니므로, 사람이 실수로 Confirmed 해도 W2 는
+대상이 없어 구현하지 않는다(이중 안전장치).
+
+두 경우 모두 Symphony가 세션을 종료하고 사람의 검토를 기다린다. 사람이 (개발 필요 건은
+계획 확인·수정 후 `Confirmed`로, 개발 불필요 건은 검토 후 `Close`로) 처리한다.
